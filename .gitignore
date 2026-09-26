@@ -1,8 +1,5 @@
-# gitignored internals (planning, notes, local secrets愈)
 internals/
-# python
 .venv/
 __pycache__/
 *.pyc
-# streamlit secrets (never commit)
 .streamlit/secrets.toml
