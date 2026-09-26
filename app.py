@@ -48,7 +48,6 @@ def fetch_url_text(url: str, timeout: int = 8) -> str:
 # --- Page config ---
 st.set_page_config(
     page_title="internsafe — Internship Scam Checker",
-    page_icon="🛡️",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -265,17 +264,17 @@ def load_sample(key: str):
 def verdict_card(verdict: str, summary: str, hard: int = 0, strong: int = 0):
     """Render a clean verdict card with confidence indicator."""
     if verdict == "RED":
-        cls, icon, title = "verdict-red", "🔴", "High Risk — Likely Scam"
+        cls, icon, title = "verdict-red", "", "High Risk — Likely Scam"
     elif verdict == "YELLOW":
-        cls, icon, title = "verdict-yellow", "🟡", "Caution — Verify Before Proceeding"
+        cls, icon, title = "verdict-yellow", "", "Caution — Verify Before Proceeding"
     else:
-        cls, icon, title = "verdict-green", "🟢", "Low Risk — No Clear Red Flags"
+        cls, icon, title = "verdict-green", "", "Low Risk — No Clear Red Flags"
 
     confidence = f"{hard} deal-breaker{'s' if hard != 1 else ''}, {strong} strong warning{'s' if strong != 1 else ''}" if hard or strong else ""
 
     st.markdown(f"""
     <div class="{cls}">
-        <div class="verdict-title">{icon} {title}</div>
+        <div class="verdict-title">{title}</div>
         <div class="verdict-summary">{summary}</div>
         {f'<div class="verdict-summary" style="margin-top:0.5rem;font-size:0.85rem;">Detected: {confidence}</div>' if confidence else ''}
     </div>
@@ -293,11 +292,11 @@ def reason_card(label: str, evidence: str):
 
 
 # --- Header ---
-st.title("🛡️ internsafe")
+st.title("internsafe")
 st.markdown("*Check an internship offer for red flags. Paste the post, get a clear verdict.*")
 
 # --- Quick samples (compact chips) ---
-with st.expander("💡 Try a sample", expanded=False):
+with st.expander("Try a sample", expanded=False):
     cols = st.columns(2)
     for i, (name, data) in enumerate(SAMPLES.items()):
         with cols[i % 2]:
@@ -381,7 +380,7 @@ documents = st.text_input("Documents requested", value=get_sample("documents_req
 st.divider()
 
 # --- Analyze ---
-run_check = st.session_state.pop("auto_check", False) or st.button("🔍 Check for Red Flags", width="stretch", type="primary")
+run_check = st.session_state.pop("auto_check", False) or st.button("Check for Red Flags", width="stretch", type="primary")
 if run_check:
     combined = (text or "").strip()
     if url.strip():
@@ -427,10 +426,10 @@ if run_check:
     with st.expander("Why this result?", expanded=True):
         # Group by severity with friendly labels
         groups = {
-            "🔴 **Deal-breakers** (any one = High Risk)": [h for h in result.hits if h.severity == "HARD_RED"],
-            "🟠 **Strong warnings**": [h for h in result.hits if h.severity == "STRONG_WARN"],
-            "🟡 **Context signals**": [h for h in result.hits if h.severity == "WEAK_WARN"],
-            "🟢 **Positive signs**": [h for h in result.hits if h.severity == "VERIFY"],
+            "Deal-breakers (any one = High Risk)": [h for h in result.hits if h.severity == "HARD_RED"],
+            "Strong warnings": [h for h in result.hits if h.severity == "STRONG_WARN"],
+            "Context signals": [h for h in result.hits if h.severity == "WEAK_WARN"],
+            "Positive signs": [h for h in result.hits if h.severity == "VERIFY"],
         }
 
         any_hits = False
@@ -454,6 +453,7 @@ if run_check:
     # --- Verification guide ---
     st.subheader("How to verify independently")
     tabs = st.tabs(["Company", "Domain", "Communication", "Golden Rules"])
+
 
     with tabs[0]:
         st.markdown("""
