@@ -22,6 +22,58 @@ class Result:
     summary: str
 
 
+# --- Hinglish normalization ---
+
+_HINGLISH_MAP = {
+    "dena padega": "must pay",
+    "dena hai": "must pay",
+    "bharna padega": "have to pay",
+    "bharna hai": "have to pay",
+    "maang rahe hain": "asking for",
+    "maang rahe": "asking for",
+    "mang rahe hain": "asking for",
+    "le rahe hain": "taking",
+    "le rahe": "taking",
+    "pe baat karo": "talk on",
+    "pe join karo": "join on",
+    "pe message karo": "message on",
+    "kaam karo": "do work",
+    "join karo": "join",
+    "apply karo": "apply",
+    "registration karo": "register",
+    "share mat karo": "do not share",
+    "bhej do": "send",
+    "bhejo": "send",
+    "jaldi karo": "hurry",
+    "abhi karo": "do now",
+    "aaj hi": "today",
+    "kal hi": "tomorrow",
+    "paisa wapas": "refund",
+    "wapas paisa": "refund",
+    "guaranteed selection": "guaranteed selection",
+    "pakka selection": "guaranteed selection",
+    "100 percent": "100%",
+    "full paisa": "full money",
+    "ke liye": "for",
+    "ki fees": "fees",
+    "ka fees": "fees",
+    "ka payment": "payment",
+    "ka registration": "registration",
+    "se join": "to join",
+    "ko join": "to join",
+}
+
+
+def _normalize_hinglish(text: str) -> str:
+    """Map common Hinglish scam phrases to English equivalents."""
+    if not text:
+        return text
+    result = text
+    for hinglish, english in _HINGLISH_MAP.items():
+        result = re.sub(re.escape(hinglish), english, result, flags=re.I)
+    return result
+
+
 # --- negation-aware helpers ---
 
 _NEGATION_WORDS = re.compile(
@@ -271,7 +323,7 @@ def _check_meta_verify(meta: dict | None) -> list[Hit]:
 def analyze(text: str, meta: dict | None = None) -> Result:
     """Deterministic decision engine. Returns Result with verdict, hits, missing info."""
     meta = meta or {}
-    t = (text or "").strip()[:5000]
+    t = _normalize_hinglish((text or "").strip()[:5000])
 
     hard_hits = _check_rules(t, _HARD_RED_RULES, "HARD_RED", meta) + _check_meta_hard_red(meta)
     strong_hits = _check_rules(t, _STRONG_WARN_RULES, "STRONG_WARN", meta) + _check_meta_strong_warn(meta)

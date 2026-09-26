@@ -117,6 +117,11 @@ check("reg_v02_case_insensitive", "Join us!", {"company": "Microsoft", "website"
 check("reg_wk04_removed", "Email at hr@gmail.com", {}, "YELLOW")
 check("reg_negation_before_only", "No fee for registration fee required", {}, "YELLOW")
 
+check("hinglish_reg_fee", "Registration fees dena padega join karne ke liye", {}, "RED", ["R02"])
+check("hinglish_cert_fee", "Certificate ke liye paisa maang rahe hain", {"asked_money": "Yes", "money_for": "certificate fee"}, "RED", ["R02"])
+check("hinglish_whatsapp", "Whatsapp pe baat karo, task karo", {"channel": "WhatsApp"}, "YELLOW")
+check("hinglish_guaranteed", "Pakka selection confirm, guaranteed job", {}, "YELLOW")
+
 
 # ============================================================
 # SUMMARY
