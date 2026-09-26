@@ -292,7 +292,7 @@ def reason_card(label: str, evidence: str):
 
 
 # --- Header ---
-st.title("internsafe")
+st.title("🛡️ internsafe")
 st.markdown("*Check an internship offer for red flags. Paste the post, get a clear verdict.*")
 
 # --- Quick samples (compact chips) ---
