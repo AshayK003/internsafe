@@ -113,6 +113,10 @@ check("edge_only_verify", "No fee, apply at careers.realcompany.com", {"company"
 # Strong warn overcome: "Earn high stipend" triggers W01 but with 4 verify hits should be GREEN
 check("edge_strong_warn_overcome", "Earn high stipend! But apply at careers.microsoft.com, no fee, specific role", {"company": "Microsoft", "website": "microsoft.com", "apply_url": "careers.microsoft.com", "email": "hr@microsoft.com", "role_details": "Specific role details here", "channel": "Email", "platform": "Company site"}, "GREEN")
 
+check("reg_v02_case_insensitive", "Join us!", {"company": "Microsoft", "website": "microsoft.com", "email": "hr@microsoft.com"}, "GREEN", ["V02"])
+check("reg_wk04_removed", "Email at hr@gmail.com", {}, "YELLOW")
+check("reg_negation_before_only", "No fee for registration fee required", {}, "YELLOW")
+
 
 # ============================================================
 # SUMMARY

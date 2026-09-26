@@ -218,10 +218,11 @@ def load_sample(key: str):
     sample = SAMPLES[key]
     st.session_state["sample_text"] = sample["text"]
     st.session_state["sample_meta"] = sample["meta"]
+    st.session_state["auto_check"] = True
 
 
-def verdict_card(verdict: str, summary: str):
-    """Render a clean verdict card."""
+def verdict_card(verdict: str, summary: str, hard: int = 0, strong: int = 0):
+    """Render a clean verdict card with confidence indicator."""
     if verdict == "RED":
         cls, icon, title = "verdict-red", "🔴", "High Risk — Likely Scam"
     elif verdict == "YELLOW":
@@ -229,10 +230,13 @@ def verdict_card(verdict: str, summary: str):
     else:
         cls, icon, title = "verdict-green", "🟢", "Low Risk — No Clear Red Flags"
 
+    confidence = f"{hard} deal-breaker{'s' if hard != 1 else ''}, {strong} strong warning{'s' if strong != 1 else ''}" if hard or strong else ""
+
     st.markdown(f"""
     <div class="{cls}">
         <div class="verdict-title">{icon} {title}</div>
         <div class="verdict-summary">{summary}</div>
+        {f'<div class="verdict-summary" style="margin-top:0.5rem;font-size:0.85rem;">Detected: {confidence}</div>' if confidence else ''}
     </div>
     """, unsafe_allow_html=True)
 
@@ -335,7 +339,8 @@ documents = st.text_input("Documents requested", value=get_sample("documents_req
 st.divider()
 
 # --- Analyze ---
-if st.button("🔍 Check for Red Flags", width="stretch", type="primary"):
+run_check = st.session_state.pop("auto_check", False) or st.button("🔍 Check for Red Flags", width="stretch", type="primary")
+if run_check:
     if not (text or "").strip():
         st.warning("Please paste the internship post first.")
         st.stop()
@@ -359,7 +364,13 @@ if st.button("🔍 Check for Red Flags", width="stretch", type="primary"):
     result: Result = analyze(text, meta)
 
     # --- Verdict ---
-    verdict_card(result.verdict, result.summary)
+    hard_count = len([h for h in result.hits if h.severity == "HARD_RED"])
+    strong_count = len([h for h in result.hits if h.severity == "STRONG_WARN"])
+    verdict_card(result.verdict, result.summary, hard_count, strong_count)
+
+    if st.button("Check another", type="secondary"):
+        st.session_state.clear()
+        st.rerun()
 
     # --- Reasons (plain language) ---
     with st.expander("Why this result?", expanded=True):

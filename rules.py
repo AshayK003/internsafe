@@ -33,16 +33,10 @@ _NEGATION_WORDS = re.compile(
 
 
 def _has_negation_near(text: str, match: re.Match, window: int = 60) -> bool:
-    """True if negation word appears within `window` chars before OR after the match."""
-    # Check before
+    """True if negation word appears within `window` chars BEFORE the match."""
     start = max(0, match.start() - window)
     context_before = text[start : match.start()]
-    if _NEGATION_WORDS.search(context_before):
-        return True
-    # Check after (for patterns like "stipend ... no fee")
-    end = min(len(text), match.end() + window)
-    context_after = text[match.end() : end]
-    return bool(_NEGATION_WORDS.search(context_after))
+    return bool(_NEGATION_WORDS.search(context_before))
 
 
 # --- HARD RED rules ---
@@ -157,7 +151,6 @@ _WEAK_WARN_RULES: list[tuple[str, re.Pattern, str]] = [
     ("WK01", re.compile(r"whatsapp", re.I), "WhatsApp mentioned"),
     ("WK02", re.compile(r"telegram", re.I), "Telegram mentioned"),
     ("WK03", re.compile(r"urgent|immediate|hurry|asap", re.I), "Urgency language"),
-    ("WK04", re.compile(r"@(gmail|yahoo|outlook|hotmail|rediffmail)\.", re.I), "Generic recruiter email"),
     ("WK05", re.compile(r"(work\s*from\s*home|remote).*flexible", re.I), "Remote with vague details"),
     ("WK06", re.compile(r"(no|without)\s*interview", re.I), "No interview mentioned"),
     ("WK07", re.compile(r"", re.I), "Incomplete employer details"),  # meta-dependent
@@ -191,7 +184,7 @@ def _check_rules(text: str, rules: list[tuple[str, re.Pattern, str]], severity: 
                 if _has_negation_near(text, m):
                     continue
                 # For HARD_RED payment patterns, also check if matched text contains negation
-                if severity == "HARD_RED" and any(kw in rule_id for kw in ("R01", "R02", "R03", "R04", "R05", "R06")):
+                if severity == "HARD_RED" and rule_id in ("R01", "R02", "R03", "R04", "R05", "R06"):
                     matched_text = m.group(0).lower()
                     if any(neg in matched_text for neg in ("no ", "not ", "never ", "without ", "free ", "zero ")):
                         continue
@@ -262,7 +255,7 @@ def _check_meta_verify(meta: dict | None) -> list[Hit]:
         hits.append(Hit("V01", "VERIFY", f"Company website provided: {website}", f"{company} -> {website}"))
     if company and email and "@" in email:
         email_domain = email.split("@")[1].split(".")[0]
-        if company.replace(" ", "") == email_domain:
+        if _domain_match(company, email_domain):
             hits.append(Hit("V02", "VERIFY", f"Email domain matches company", f"{email}"))
     if apply_url and "careers" in apply_url and not any(x in apply_url for x in ("indeed", "naukri", "linkedin", "monster", "glassdoor", "internshala")):
         hits.append(Hit("V03", "VERIFY", f"Application on company careers page", apply_url))
@@ -278,7 +271,7 @@ def _check_meta_verify(meta: dict | None) -> list[Hit]:
 def analyze(text: str, meta: dict | None = None) -> Result:
     """Deterministic decision engine. Returns Result with verdict, hits, missing info."""
     meta = meta or {}
-    t = (text or "").strip()
+    t = (text or "").strip()[:5000]
 
     hard_hits = _check_rules(t, _HARD_RED_RULES, "HARD_RED", meta) + _check_meta_hard_red(meta)
     strong_hits = _check_rules(t, _STRONG_WARN_RULES, "STRONG_WARN", meta) + _check_meta_strong_warn(meta)
