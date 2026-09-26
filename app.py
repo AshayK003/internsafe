@@ -1,7 +1,48 @@
 """internsafe - clean UI for internship scam detection."""
+import re
 import streamlit as st
+from html.parser import HTMLParser
+from urllib.request import Request, urlopen
+from urllib.error import URLError
 
 from rules import Hit, Result, analyze
+
+
+class _TextExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self._chunks: list[str] = []
+        self._skip = 0
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        if tag in ("script", "style", "noscript"):
+            self._skip += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("script", "style", "noscript") and self._skip:
+            self._skip -= 1
+
+    def handle_data(self, data: str) -> None:
+        if not self._skip:
+            t = data.strip()
+            if t:
+                self._chunks.append(t)
+
+    def text(self) -> str:
+        return " ".join(self._chunks)
+
+
+def fetch_url_text(url: str, timeout: int = 8) -> str:
+    try:
+        req = Request(url, headers={"User-Agent": "Mozilla/5.0 (internsafe)"})
+        with urlopen(req, timeout=timeout) as resp:
+            raw = resp.read(200_000)
+        html = raw.decode("utf-8", errors="ignore")
+        p = _TextExtractor()
+        p.feed(html)
+        return re.sub(r"\s+", " ", p.text()).strip()[:5000]
+    except (URLError, OSError, ValueError):
+        return ""
 
 
 # --- Page config ---
@@ -269,6 +310,7 @@ st.divider()
 
 # --- Input: Post text ---
 st.subheader("Internship Post / Message")
+url = st.text_input("Or paste a link", placeholder="https://linkedin.com/jobs/view/... or https://internshala.com/internship/detail/...")
 text = st.text_area(
     "",
     height=140,
@@ -341,7 +383,16 @@ st.divider()
 # --- Analyze ---
 run_check = st.session_state.pop("auto_check", False) or st.button("🔍 Check for Red Flags", width="stretch", type="primary")
 if run_check:
-    if not (text or "").strip():
+    combined = (text or "").strip()
+    if url.strip():
+        with st.spinner("Fetching link..."):
+            fetched = fetch_url_text(url.strip())
+        if fetched:
+            combined = f"{combined}\n\n{fetched}".strip()
+            st.caption(f"Fetched {len(fetched)} characters from link.")
+        else:
+            st.warning("Could not extract text from that link (site may block scrapers). Paste the text manually.")
+    if not combined:
         st.warning("Please paste the internship post first.")
         st.stop()
 
@@ -358,10 +409,10 @@ if run_check:
         "role_details": role_details,
         "recruiter_name": recruiter_name,
         "documents_requested": documents,
-        "explicit_no_fee": "no fee" if "no fee" in text.lower() or "no payment" in text.lower() else "",
+        "explicit_no_fee": "no fee" if "no fee" in combined.lower() or "no payment" in combined.lower() else "",
     }
 
-    result: Result = analyze(text, meta)
+    result: Result = analyze(combined, meta)
 
     # --- Verdict ---
     hard_count = len([h for h in result.hits if h.severity == "HARD_RED"])
